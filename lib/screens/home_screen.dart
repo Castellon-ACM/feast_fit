@@ -7,24 +7,62 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      appBar: CustomAppBar2(title: 'Inicio'),
+    return Scaffold(
+      appBar: const CustomAppBar2(title: 'Inicio'),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Bienvenido a FeastFit',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 10),
-            Text(
+            const SizedBox(height: 10),
+            const Text(
               'Explora recetas saludables y personaliza tu plan de alimentación.',
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
+            Expanded(
+              child: ListView(
+                children: [
+                  _buildFeaturedRecipe(context),
+                ],
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+Widget _buildFeaturedRecipe(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        image: const DecorationImage(
+          image: AssetImage('assets/logo.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
+      height: 200,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          gradient: LinearGradient(
+            colors: [Colors.black.withOpacity(0.6), Colors.transparent],
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+          ),
+        ),
+        child: const Align(
+          alignment: Alignment.bottomLeft,
+          child: Text(
+            'Receta Destacada: Ensalada Cesar',
+            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
     );
