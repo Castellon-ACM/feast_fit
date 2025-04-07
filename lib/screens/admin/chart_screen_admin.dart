@@ -81,9 +81,7 @@ class _ChartScreenAdminState extends State<ChartScreenAdmin> {
             content: Text('No se puede añadir más de dos datos al día.'),
             actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
+                onPressed: () => Navigator.of(context).pop(),
                 child: Text('OK'),
               ),
             ],
@@ -110,14 +108,105 @@ class _ChartScreenAdminState extends State<ChartScreenAdmin> {
     _controllerValue.clear();
   }
 
+  Widget _buildBarChart() {
+    return BarChart(
+      BarChartData(
+        barGroups: chartData.asMap().entries.map((entry) {
+          int index = entry.key;
+          FlSpot spot = entry.value;
+          return BarChartGroupData(
+            x: index,
+            barRods: [
+              BarChartRodData(
+                toY: spot.y,
+                width: 20,
+                gradient: LinearGradient(
+                  colors: [gradientColors[index % gradientColors.length]],
+                ),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ],
+            showingTooltipIndicators: [0],
+          );
+        }).toList(),
+        titlesData: FlTitlesData(
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                int index = value.toInt();
+                return Text(index < chartData.length ? '${index + 1}º' : '');
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        barTouchData: BarTouchData(enabled: false),
+      ),
+    );
+  }
+
+  Widget _buildLineChart() {
+    return LineChart(
+      LineChartData(
+        lineBarsData: [
+          LineChartBarData(
+            spots: chartData,
+            isCurved: true,
+            gradient: LinearGradient(colors: gradientColors),
+            barWidth: 4,
+            isStrokeCapRound: true,
+            dotData: FlDotData(show: true),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                colors:
+                    gradientColors.map((color) => color.withOpacity(0.3)).toList(),
+              ),
+            ),
+          ),
+        ],
+        titlesData: FlTitlesData(
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                int index = value.toInt();
+                return Text(index < chartData.length ? '${index + 1}º' : '');
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        lineTouchData: LineTouchData(enabled: false),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Column(
         children: [
-          const CustomAppBar2(
-            title: 'Gráficos',
-          ),
+          const CustomAppBar2(title: 'Gráficos'),
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -151,95 +240,7 @@ class _ChartScreenAdminState extends State<ChartScreenAdmin> {
                   child: SizedBox(
                     width: 300,
                     height: 300,
-                    child: isBarChart
-                        ? BarChart(
-                            BarChartData(
-                              barGroups: chartData.asMap().entries.map((entry) {
-                                int index = entry.key;
-                                FlSpot spot = entry.value;
-                                return BarChartGroupData(
-                                  x: index,
-                                  barRods: [
-                                    BarChartRodData(
-                                      y: spot.y,
-                                      colors: [
-                                        gradientColors[
-                                            index % gradientColors.length]
-                                      ],
-                                      width: 20,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                  ],
-                                  showingTooltipIndicators: [0],
-                                );
-                              }).toList(),
-                              titlesData: FlTitlesData(
-                                bottomTitles: SideTitles(
-                                  showTitles: true,
-                                  getTitles: (value) {
-                                    int index = value.toInt();
-                                    return index < chartData.length
-                                        ? '${index + 1}º'
-                                        : '';
-                                  },
-                                ),
-                                leftTitles: SideTitles(
-                                  showTitles: false,
-                                ),
-                                topTitles: SideTitles(
-                                  showTitles: false,
-                                ),
-                                rightTitles: SideTitles(
-                                  showTitles: false,
-                                ),
-                              ),
-                              borderData: FlBorderData(show: false),
-                              barTouchData: BarTouchData(enabled: false),
-                            ),
-                          )
-                        : LineChart(
-                            LineChartData(
-                              lineBarsData: [
-                                LineChartBarData(
-                                  spots: chartData,
-                                  isCurved: true,
-                                  colors: gradientColors,
-                                  barWidth: 4,
-                                  isStrokeCapRound: true,
-                                  dotData: FlDotData(show: true),
-                                  belowBarData: BarAreaData(
-                                    show: true,
-                                    colors: gradientColors
-                                        .map((color) => color.withOpacity(0.3))
-                                        .toList(),
-                                  ),
-                                ),
-                              ],
-                              titlesData: FlTitlesData(
-                                bottomTitles: SideTitles(
-                                  showTitles: true,
-                                  getTitles: (value) {
-                                    int index = value.toInt();
-                                    if (index < chartData.length) {
-                                      return '${index + 1}º';
-                                    }
-                                    return '';
-                                  },
-                                ),
-                                leftTitles: SideTitles(
-                                  showTitles: false,
-                                ),
-                                topTitles: SideTitles(
-                                  showTitles: false,
-                                ),
-                                rightTitles: SideTitles(
-                                  showTitles: false,
-                                ),
-                              ),
-                              borderData: FlBorderData(show: false),
-                              lineTouchData: LineTouchData(enabled: false),
-                            ),
-                          ),
+                    child: isBarChart ? _buildBarChart() : _buildLineChart(),
                   ),
                 ),
                 const SizedBox(height: 20),
