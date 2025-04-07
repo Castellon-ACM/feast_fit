@@ -60,6 +60,7 @@ class MainScreen extends StatelessWidget {
                           const HomeScreen(),
                           const FoodScreen(),
                           ChartScreen(),
+                          const ExerciseScreen(),
                         ],
                 ),
               ),
@@ -72,7 +73,8 @@ class MainScreen extends StatelessWidget {
                     : [
                         const Tab(icon: Icon(Icons.home), text: 'Inicio'),
                         const Tab(icon: Icon(Icons.fastfood), text: 'Dieta'),
-                        const Tab(icon: Icon(Icons.bar_chart), text: 'Gráfico'),
+                        const Tab(icon: Icon(Icons.book), text: 'Recetas'),
+                        const Tab(icon: Icon(Icons.fitness_center), text: 'Ejercicios'),
                       ],
                 labelColor: Colors.blue,
                 unselectedLabelColor: Colors.grey,

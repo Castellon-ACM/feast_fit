@@ -10,3 +10,5 @@ export 'package:feast_fit/screens/contact_screen.dart';
 export 'package:feast_fit/screens/profile_screen.dart';
 export 'package:feast_fit/screens/main_screen.dart';
 export 'package:feast_fit/screens/user/food_detail_screen.dart';
+export 'package:feast_fit/screens/main_screen.dart';
+export 'package:feast_fit/screens/exercise_screen.dart';
