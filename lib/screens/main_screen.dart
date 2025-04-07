@@ -47,7 +47,7 @@ class MainScreen extends StatelessWidget {
           bool isAdmin = snapshot.data ?? false;
 
           return DefaultTabController(
-            length: isAdmin ? 2 : 3,
+            length: isAdmin ? 2 : 4,
             child: Scaffold(
               body: BackgroundContainer(
                 child: TabBarView(
