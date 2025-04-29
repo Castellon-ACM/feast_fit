@@ -1,4 +1,3 @@
-import 'package:feast_fit/screens/admin/chart_screen_admin.dart';
 import 'package:feast_fit/screens/admin/food_screen_admin.dart';
 import 'package:feast_fit/screens/screens.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
