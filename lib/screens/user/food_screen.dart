@@ -1,10 +1,10 @@
-import 'package:feast_fit/screens/screens.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart';
+import 'package:table_calendar/table_calendar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/food_data.dart';
+import '../screens.dart';
 
 class FoodScreen extends StatefulWidget {
   const FoodScreen({super.key});
@@ -14,60 +14,56 @@ class FoodScreen extends StatefulWidget {
 }
 
 class _FoodScreenState extends State<FoodScreen> {
-  final List<String> _daysOfWeek = [];
+  DateTime _selectedDay = DateTime.now();
+  DateTime _focusedDay = DateTime.now();
+  Map<String, dynamic> _meals = {};
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _generateDaysOfWeek();
+    _loadMeals();
   }
 
-  void _generateDaysOfWeek() {
-    final now = DateTime.now();
-    _daysOfWeek.clear();
-    for (int i = -7; i < 7; i++) {
-      final day = now.add(Duration(days: i));
-      final formattedDate =
-          "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
-      _daysOfWeek.add(formattedDate);
-    }
-  }
-
-  String _formatDate(String isoDate) {
-    final parts = isoDate.split('-');
-    if (parts.length != 3) return isoDate;
+  Future<void> _loadMeals() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
     try {
-      final date = DateTime(
-          int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser?.uid)
+          .get();
 
-      const monthNames = [
-        'ene.',
-        'feb.',
-        'mar.',
-        'abr.',
-        'may.',
-        'jun.',
-        'jul.',
-        'ago.',
-        'sept.',
-        'oct.',
-        'nov.',
-        'dic.'
-      ];
-
-      return "${date.day} ${monthNames[date.month - 1]} ${date.year}";
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        setState(() {
+          _meals = userData['meals'] as Map<String, dynamic>? ?? {};
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _meals = {};
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      return isoDate;
+      setState(() {
+        _errorMessage = 'Error al cargar tu plan de comidas';
+        _isLoading = false;
+      });
     }
+  }
+
+  String _formatDateKey(DateTime date) {
+    return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
   }
 
   String _getFoodImage(String foodName) {
     return foodImages[foodName] ?? defaultFoodImage;
-  }
-
-  String _getMealTypeImage(String mealType) {
-    return mealTypeImages[mealType] ?? defaultFoodImage;
   }
 
   String _estimateCalories(String foodName) {
@@ -225,8 +221,7 @@ class _FoodScreenState extends State<FoodScreen> {
     );
   }
 
-  Widget _buildMealTypeSection(
-      String dayKey, String mealType, List<String> foods) {
+  Widget _buildMealTypeSection(String mealType, List<String> foods) {
     if (foods.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -252,160 +247,194 @@ class _FoodScreenState extends State<FoodScreen> {
     );
   }
 
+  Widget _buildSelectedDayMeals() {
+    final dateKey = _formatDateKey(_selectedDay);
+    final dayMeals = _meals[dateKey] as Map<String, dynamic>? ?? {};
+    
+    if (dayMeals.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.restaurant_menu,
+              size: 80,
+              color: Colors.grey[300],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No hay dieta asignada a este día',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 16),
+      children: [
+        ...["Desayuno", "Almuerzo", "Snack", "Cena"].map((mealType) {
+          final foodList = dayMeals[mealType] as List<dynamic>? ?? [];
+          return _buildMealTypeSection(
+            mealType,
+            foodList.cast<String>(),
+          );
+        }).toList(),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: FutureBuilder<DocumentSnapshot>(
-        future: FirebaseFirestore.instance
-            .collection('users')
-            .doc(FirebaseAuth.instance.currentUser?.uid)
-            .get(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Error al cargar tu plan de comidas',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {});
-                    },
-                    child: const Text('Reintentar'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(
-              child: Text('No se encontró información de tu plan alimenticio'),
-            );
-          }
-
-          final userData = snapshot.data!.data() as Map<String, dynamic>;
-          final meals = userData['meals'] as Map<String, dynamic>? ?? {};
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              setState(() {});
-            },
-            child: Column(
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            height: 180,
+            child: Stack(
+              fit: StackFit.expand,
               children: [
+                Image.asset(
+                  'assets/carbonara.jpg',
+                  fit: BoxFit.cover,
+                ),
                 Container(
-                  width: double.infinity,
-                  height: 200,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  child: Stack(
-                    fit: StackFit.expand,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.1),
+                        Colors.black.withOpacity(0.7),
+                      ],
+                    ),
+                  ),
+                ),
+                const Positioned(
+                  left: 20,
+                  bottom: 20,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Image.asset(
-                        'assets/carbonara.jpg',
-                        fit: BoxFit.cover,
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withOpacity(0.1),
-                              Colors.black.withOpacity(0.7),
-                            ],
-                          ),
+                      Text(
+                        'Tu Plan de',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      const Positioned(
-                        left: 20,
-                        bottom: 20,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Tu Plan de',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            Text(
-                              'Alimentación',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
+                      Text(
+                        'Alimentación',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
                 ),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: _daysOfWeek.length,
-                    itemBuilder: (context, index) {
-                      final day = _daysOfWeek[index];
-                      final formattedDay = _formatDate(day);
-
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          dividerColor: Colors.transparent,
-                        ),
-                        child: ExpansionTile(
-                          title: Text(
-                            formattedDay,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          children: [
-                            if (meals.containsKey(day))
-                              ...["Desayuno", "Almuerzo", "Snack", "Cena"]
-                                  .map((mealType) {
-                                final mealData =
-                                    meals[day] as Map<String, dynamic>? ?? {};
-                                final foodList =
-                                    mealData[mealType] as List<dynamic>? ?? [];
-                                return _buildMealTypeSection(
-                                  day,
-                                  mealType,
-                                  foodList.cast<String>(),
-                                );
-                              }).toList()
-                            else
-                              Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Text(
-                                  'No hay comidas programadas para este día',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
               ],
             ),
-          );
-        },
+          ),
+          TableCalendar(
+            firstDay: DateTime.now().subtract(const Duration(days: 365)),
+            lastDay: DateTime.now().add(const Duration(days: 365)),
+            focusedDay: _focusedDay,
+            calendarFormat: CalendarFormat.month,
+            selectedDayPredicate: (day) {
+              return isSameDay(_selectedDay, day);
+            },
+            onDaySelected: (selectedDay, focusedDay) {
+              setState(() {
+                _selectedDay = selectedDay;
+                _focusedDay = focusedDay;
+              });
+            },
+            headerStyle: const HeaderStyle(
+              formatButtonVisible: false,
+              titleCentered: true,
+              titleTextStyle: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            calendarStyle: CalendarStyle(
+              todayDecoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.5),
+                shape: BoxShape.circle,
+              ),
+              selectedDecoration: const BoxDecoration(
+                color: Colors.blue,
+                shape: BoxShape.circle,
+              ),
+              markerDecoration: const BoxDecoration(
+                color: Colors.green,
+                shape: BoxShape.circle,
+              ),
+            ),
+            // Para mostrar marcadores en días con comidas
+            calendarBuilders: CalendarBuilders(
+              markerBuilder: (context, date, events) {
+                final dateKey = _formatDateKey(date);
+                if (_meals.containsKey(dateKey)) {
+                  return Positioned(
+                    bottom: 1,
+                    child: Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  );
+                }
+                return null;
+              },
+            ),
+          ),
+          const Divider(),
+          if (_isLoading)
+            const Expanded(
+              child: Center(
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (_errorMessage != null)
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _errorMessage!,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _loadMeals,
+                      child: const Text('Reintentar'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _loadMeals,
+                child: _buildSelectedDayMeals(),
+              ),
+            ),
+        ],
       ),
     );
   }
