@@ -49,6 +49,7 @@ class MainScreen extends StatelessWidget {
             length: isAdmin ? 2 : 4,
             child: Scaffold(
               body: BackgroundContainer(
+                useGradient: true,
                 child: TabBarView(
                   children: isAdmin
                       ? [
@@ -58,7 +59,7 @@ class MainScreen extends StatelessWidget {
                       : [
                           const HomeScreen(),
                           const FoodScreen(),
-                          ChartScreen(),
+                          const RecipesScreen(),
                           const ExerciseScreen(),
                         ],
                 ),

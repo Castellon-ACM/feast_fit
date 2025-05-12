@@ -1,3 +1,4 @@
+import 'package:feast_fit/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -71,12 +72,10 @@ class _FoodScreenState extends State<FoodScreen> {
   }
 
   String _generateDescription(String foodName) {
-    return descriptions[foodName] ??
-        'Plato nutritivo preparado con ingredientes frescos';
+    return descriptions[foodName] ?? 'Plato nutritivo preparado con ingredientes frescos';
   }
 
-  Widget _buildFoodItem(
-      BuildContext context, String foodName, String mealType) {
+  Widget _buildFoodItem(BuildContext context, String foodName, String mealType) {
     final imageUrl = _getFoodImage(foodName);
     final calories = _estimateCalories(foodName);
     final description = _generateDescription(foodName);
@@ -176,8 +175,7 @@ class _FoodScreenState extends State<FoodScreen> {
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: Colors.green.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(10),
@@ -193,8 +191,7 @@ class _FoodScreenState extends State<FoodScreen> {
                           ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: Colors.blue.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(10),
@@ -222,9 +219,7 @@ class _FoodScreenState extends State<FoodScreen> {
   }
 
   Widget _buildMealTypeSection(String mealType, List<String> foods) {
-    if (foods.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    if (foods.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -240,9 +235,7 @@ class _FoodScreenState extends State<FoodScreen> {
             ),
           ),
         ),
-        ...foods
-            .map((food) => _buildFoodItem(context, food, mealType))
-            .toList(),
+        ...foods.map((food) => _buildFoodItem(context, food, mealType)).toList(),
       ],
     );
   }
@@ -250,17 +243,13 @@ class _FoodScreenState extends State<FoodScreen> {
   Widget _buildSelectedDayMeals() {
     final dateKey = _formatDateKey(_selectedDay);
     final dayMeals = _meals[dateKey] as Map<String, dynamic>? ?? {};
-    
+
     if (dayMeals.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.restaurant_menu,
-              size: 80,
-              color: Colors.grey[300],
-            ),
+            Icon(Icons.restaurant_menu, size: 80, color: Colors.grey[300]),
             const SizedBox(height: 16),
             Text(
               'No hay dieta asignada a este día',
@@ -280,10 +269,7 @@ class _FoodScreenState extends State<FoodScreen> {
       children: [
         ...["Desayuno", "Almuerzo", "Snack", "Cena"].map((mealType) {
           final foodList = dayMeals[mealType] as List<dynamic>? ?? [];
-          return _buildMealTypeSection(
-            mealType,
-            foodList.cast<String>(),
-          );
+          return _buildMealTypeSection(mealType, foodList.cast<String>());
         }).toList(),
       ],
     );
@@ -291,151 +277,145 @@ class _FoodScreenState extends State<FoodScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            height: 180,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Image.asset(
-                  'assets/carbonara.jpg',
-                  fit: BoxFit.cover,
-                ),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withOpacity(0.1),
-                        Colors.black.withOpacity(0.7),
-                      ],
-                    ),
-                  ),
-                ),
-                const Positioned(
-                  left: 20,
-                  bottom: 20,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Tu Plan de',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Text(
-                        'Alimentación',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          TableCalendar(
-            firstDay: DateTime.now().subtract(const Duration(days: 365)),
-            lastDay: DateTime.now().add(const Duration(days: 365)),
-            focusedDay: _focusedDay,
-            calendarFormat: CalendarFormat.month,
-            selectedDayPredicate: (day) {
-              return isSameDay(_selectedDay, day);
-            },
-            onDaySelected: (selectedDay, focusedDay) {
-              setState(() {
-                _selectedDay = selectedDay;
-                _focusedDay = focusedDay;
-              });
-            },
-            headerStyle: const HeaderStyle(
-              formatButtonVisible: false,
-              titleCentered: true,
-              titleTextStyle: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            calendarStyle: CalendarStyle(
-              todayDecoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.5),
-                shape: BoxShape.circle,
-              ),
-              selectedDecoration: const BoxDecoration(
-                color: Colors.blue,
-                shape: BoxShape.circle,
-              ),
-              markerDecoration: const BoxDecoration(
-                color: Colors.green,
-                shape: BoxShape.circle,
-              ),
-            ),
-            // Para mostrar marcadores en días con comidas
-            calendarBuilders: CalendarBuilders(
-              markerBuilder: (context, date, events) {
-                final dateKey = _formatDateKey(date);
-                if (_meals.containsKey(dateKey)) {
-                  return Positioned(
-                    bottom: 1,
-                    child: Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  );
-                }
-                return null;
-              },
-            ),
-          ),
-          const Divider(),
-          if (_isLoading)
-            const Expanded(
-              child: Center(
-                child: CircularProgressIndicator(),
-              ),
-            )
-          else if (_errorMessage != null)
-            Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+    return Scaffold(
+  body: SafeArea(
+    child: Column(
+      children: [
+        const CustomAppBar2(title: 'Tu Plan de Alimentación'),
+        Expanded(
+          child: Column(
+            children: [
+              // Todo lo que estaba en body ahora va dentro de este Expanded
+              Container(
+                width: double.infinity,
+                height: 180,
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    Text(
-                      _errorMessage!,
-                      style: const TextStyle(fontSize: 16),
+                    Image.asset('assets/carbonara.jpg', fit: BoxFit.cover),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withOpacity(0.1),
+                            Colors.black.withOpacity(0.7),
+                          ],
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _loadMeals,
-                      child: const Text('Reintentar'),
+                    const Positioned(
+                      left: 20,
+                      bottom: 20,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Tu Plan de',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            'Alimentación',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            )
-          else
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _loadMeals,
-                child: _buildSelectedDayMeals(),
+            TableCalendar(
+              firstDay: DateTime.now().subtract(const Duration(days: 365)),
+              lastDay: DateTime.now().add(const Duration(days: 365)),
+              focusedDay: _focusedDay,
+              calendarFormat: CalendarFormat.month,
+              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+              onDaySelected: (selectedDay, focusedDay) {
+                setState(() {
+                  _selectedDay = selectedDay;
+                  _focusedDay = focusedDay;
+                });
+              },
+              headerStyle: const HeaderStyle(
+                formatButtonVisible: false,
+                titleCentered: true,
+                titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              calendarStyle: CalendarStyle(
+                todayDecoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.5),
+                  shape: BoxShape.circle,
+                ),
+                selectedDecoration: const BoxDecoration(
+                  color: Colors.blue,
+                  shape: BoxShape.circle,
+                ),
+                markerDecoration: const BoxDecoration(
+                  color: Colors.green,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              calendarBuilders: CalendarBuilders(
+                markerBuilder: (context, date, events) {
+                  final dateKey = _formatDateKey(date);
+                  if (_meals.containsKey(dateKey)) {
+                    return Positioned(
+                      bottom: 1,
+                      child: Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    );
+                  }
+                  return null;
+                },
               ),
             ),
-        ],
+            const Divider(),
+            if (_isLoading)
+              const Expanded(child: Center(child: CircularProgressIndicator()))
+            else if (_errorMessage != null)
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(_errorMessage!, style: const TextStyle(fontSize: 16)),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadMeals,
+                        child: const Text('Reintentar'),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: _loadMeals,
+                  child: _buildSelectedDayMeals(),
+                ),
+              ),
+          ],
+        ),
       ),
-    );
+    ],
+    ),
+  ),
+  );
   }
 }
