@@ -14,17 +14,40 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
   final user = FirebaseAuth.instance.currentUser;
   late TabController _tabController;
   bool _showFavoritesOnly = false;
+  
+  // Variables para la búsqueda
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  
+  // Variable para filtrar por autor específico
+  String? _filterByAuthorId;
+  String? _filterByAuthorEmail;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    
+    // Añadir listener para la búsqueda
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  void _clearAuthorFilter() {
+    setState(() {
+      _filterByAuthorId = null;
+      _filterByAuthorEmail = null;
+    });
   }
 
   @override
@@ -32,7 +55,60 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
     return Column(
       children: [
         const CustomAppBar2(title: 'Recetas'),
-        // Segundo AppBar con pestañas
+        
+        // Barra de búsqueda
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.3),
+                  spreadRadius: 1,
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Buscar recetas...',
+                prefixIcon: const Icon(Icons.search, color: Colors.brown),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.brown),
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 15),
+              ),
+            ),
+          ),
+        ),
+        
+        // Chip de filtro de autor si está activo
+        if (_filterByAuthorEmail != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Row(
+              children: [
+                Chip(
+                  label: Text('Recetas de: $_filterByAuthorEmail'),
+                  deleteIcon: const Icon(Icons.close, size: 18),
+                  onDeleted: _clearAuthorFilter,
+                  backgroundColor: Colors.brown.shade100,
+                ),
+              ],
+            ),
+          ),
+        
+        // TabBar con pestañas
         Container(
           color: Colors.brown.shade200,
           child: TabBar(
@@ -45,11 +121,11 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
               Tab(text: 'Mis recetas'),
             ],
             onTap: (index) {
-              // Actualizar el estado para forzar reconstrucción
               setState(() {});
             },
           ),
         ),
+        
         Expanded(
           child: TabBarView(
             controller: _tabController,
@@ -61,6 +137,7 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
             ],
           ),
         ),
+        
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
@@ -117,16 +194,46 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
               ? (recipe['likes'] ?? []).contains(user?.uid)
               : true;
           
-          return authorMatch && favoriteMatch;
+          // Filtrar por autor específico
+          final bool specificAuthorMatch = _filterByAuthorId != null
+              ? recipe['authorId'] == _filterByAuthorId
+              : true;
+          
+          // Filtrar por búsqueda
+          final bool searchMatch = _searchQuery.isEmpty ? true : 
+              (recipe['title']?.toString().toLowerCase().contains(_searchQuery) ?? false) ||
+              (recipe['description']?.toString().toLowerCase().contains(_searchQuery) ?? false) ||
+              (recipe['ingredients']?.toString().toLowerCase().contains(_searchQuery) ?? false);
+          
+          return authorMatch && favoriteMatch && specificAuthorMatch && searchMatch;
         }).toList();
 
         if (filteredRecipes.isEmpty) {
           return Center(
-            child: Text(
-              _showFavoritesOnly 
-                ? 'No tienes recetas favoritas' 
-                : (showOnlyMine ? 'No has creado recetas aún' : 'No hay recetas disponibles'),
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  _searchQuery.isNotEmpty 
+                    ? 'No se encontraron recetas con "$_searchQuery"'
+                    : _filterByAuthorEmail != null
+                      ? 'No hay recetas de $_filterByAuthorEmail'
+                      : _showFavoritesOnly 
+                        ? 'No tienes recetas favoritas' 
+                        : (showOnlyMine ? 'No has creado recetas aún' : 'No hay recetas disponibles'),
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+                if (_searchQuery.isNotEmpty || _filterByAuthorEmail != null)
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _searchController.clear();
+                        _clearAuthorFilter();
+                      });
+                    },
+                    child: const Text('Limpiar filtros'),
+                  ),
+              ],
             ),
           );
         }
@@ -153,9 +260,26 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      recipe['authorEmail'] ?? 'Anónimo',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    // Email como botón para filtrar por autor
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _filterByAuthorId = recipe['authorId'];
+                          _filterByAuthorEmail = recipe['authorEmail'];
+                          // Cambiar a la pestaña "Todas las recetas" si estamos en "Mis recetas"
+                          if (_tabController.index == 1) {
+                            _tabController.animateTo(0);
+                          }
+                        });
+                      },
+                      child: Text(
+                        recipe['authorEmail'] ?? 'Anónimo',
+                        style: TextStyle(
+                          fontSize: 12, 
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline
+                        ),
+                      ),
                     ),
                   ],
                 ),
