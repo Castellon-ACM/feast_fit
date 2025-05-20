@@ -46,7 +46,7 @@ class MainScreen extends StatelessWidget {
           bool isAdmin = snapshot.data ?? false;
 
           return DefaultTabController(
-            length: isAdmin ? 2 : 4,
+            length: isAdmin ? 3 : 4,
             child: Scaffold(
               body: BackgroundContainer(
                 useGradient: true,
@@ -55,6 +55,7 @@ class MainScreen extends StatelessWidget {
                       ? [
                           const HomeScreenAdmin(),
                           const FoodScreenAdmin(),
+                          const RecipesScreen(),
                         ]
                       : [
                           const HomeScreen(),
@@ -69,6 +70,7 @@ class MainScreen extends StatelessWidget {
                     ? [
                         const Tab(icon: Icon(Icons.home), text: 'Inicio'),
                         const Tab(icon: Icon(Icons.fastfood), text: 'Dieta'),
+                        const Tab(icon: Icon(Icons.book), text: 'Recetas'),
                       ]
                     : [
                         const Tab(icon: Icon(Icons.home), text: 'Inicio'),

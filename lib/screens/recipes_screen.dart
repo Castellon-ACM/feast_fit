@@ -10,15 +10,16 @@ class RecipesScreen extends StatefulWidget {
   State<RecipesScreen> createState() => _RecipesScreenState();
 }
 
-class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProviderStateMixin {
+class _RecipesScreenState extends State<RecipesScreen>
+    with SingleTickerProviderStateMixin {
   final user = FirebaseAuth.instance.currentUser;
   late TabController _tabController;
   bool _showFavoritesOnly = false;
-  
+
   // Variables para la búsqueda
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  
+
   // Variable para filtrar por autor específico
   String? _filterByAuthorId;
   String? _filterByAuthorEmail;
@@ -27,7 +28,7 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    
+
     // Añadir listener para la búsqueda
     _searchController.addListener(() {
       setState(() {
@@ -55,7 +56,7 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
     return Column(
       children: [
         const CustomAppBar2(title: 'Recetas'),
-        
+
         // Barra de búsqueda
         Padding(
           padding: const EdgeInsets.all(8.0),
@@ -91,7 +92,7 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
             ),
           ),
         ),
-        
+
         // Chip de filtro de autor si está activo
         if (_filterByAuthorEmail != null)
           Padding(
@@ -107,7 +108,7 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
               ],
             ),
           ),
-        
+
         // TabBar con pestañas
         Container(
           color: Colors.brown.shade200,
@@ -125,7 +126,7 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
             },
           ),
         ),
-        
+
         Expanded(
           child: TabBarView(
             controller: _tabController,
@@ -137,7 +138,7 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
             ],
           ),
         ),
-        
+
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
@@ -176,36 +177,53 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
           .orderBy('timestamp', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        if (!snapshot.hasData)
+          return const Center(child: CircularProgressIndicator());
 
         final allRecipes = snapshot.data!.docs;
-        
+
         // Filtrar recetas según los criterios
         final filteredRecipes = allRecipes.where((doc) {
           final recipe = doc.data() as Map<String, dynamic>;
-          
-          // Filtrar por autor (mis recetas o todas)
-          final bool authorMatch = showOnlyMine 
-              ? recipe['authorId'] == user?.uid 
-              : true;
-          
-          // Filtrar por favoritos si está activado
-          final bool favoriteMatch = _showFavoritesOnly 
+
+          // Mostrar solo recetas públicas, a menos que sean mías
+          final bool visibilityMatch =
+              recipe['public'] == true || recipe['authorId'] == user?.uid;
+
+          final bool authorMatch =
+              showOnlyMine ? recipe['authorId'] == user?.uid : true;
+
+          final bool favoriteMatch = _showFavoritesOnly
               ? (recipe['likes'] ?? []).contains(user?.uid)
               : true;
-          
-          // Filtrar por autor específico
+
           final bool specificAuthorMatch = _filterByAuthorId != null
               ? recipe['authorId'] == _filterByAuthorId
               : true;
-          
-          // Filtrar por búsqueda
-          final bool searchMatch = _searchQuery.isEmpty ? true : 
-              (recipe['title']?.toString().toLowerCase().contains(_searchQuery) ?? false) ||
-              (recipe['description']?.toString().toLowerCase().contains(_searchQuery) ?? false) ||
-              (recipe['ingredients']?.toString().toLowerCase().contains(_searchQuery) ?? false);
-          
-          return authorMatch && favoriteMatch && specificAuthorMatch && searchMatch;
+
+          final bool searchMatch = _searchQuery.isEmpty
+              ? true
+              : (recipe['title']
+                          ?.toString()
+                          .toLowerCase()
+                          .contains(_searchQuery) ??
+                      false) ||
+                  (recipe['description']
+                          ?.toString()
+                          .toLowerCase()
+                          .contains(_searchQuery) ??
+                      false) ||
+                  (recipe['ingredients']
+                          ?.toString()
+                          .toLowerCase()
+                          .contains(_searchQuery) ??
+                      false);
+
+          return visibilityMatch &&
+              authorMatch &&
+              favoriteMatch &&
+              specificAuthorMatch &&
+              searchMatch;
         }).toList();
 
         if (filteredRecipes.isEmpty) {
@@ -214,13 +232,15 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  _searchQuery.isNotEmpty 
-                    ? 'No se encontraron recetas con "$_searchQuery"'
-                    : _filterByAuthorEmail != null
-                      ? 'No hay recetas de $_filterByAuthorEmail'
-                      : _showFavoritesOnly 
-                        ? 'No tienes recetas favoritas' 
-                        : (showOnlyMine ? 'No has creado recetas aún' : 'No hay recetas disponibles'),
+                  _searchQuery.isNotEmpty
+                      ? 'No se encontraron recetas con "$_searchQuery"'
+                      : _filterByAuthorEmail != null
+                          ? 'No hay recetas de $_filterByAuthorEmail'
+                          : _showFavoritesOnly
+                              ? 'No tienes recetas favoritas'
+                              : (showOnlyMine
+                                  ? 'No has creado recetas aún'
+                                  : 'No hay recetas disponibles'),
                   style: const TextStyle(fontSize: 16, color: Colors.grey),
                 ),
                 if (_searchQuery.isNotEmpty || _filterByAuthorEmail != null)
@@ -241,7 +261,8 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
         return ListView.builder(
           itemCount: filteredRecipes.length,
           itemBuilder: (context, index) {
-            final recipe = filteredRecipes[index].data() as Map<String, dynamic>;
+            final recipe =
+                filteredRecipes[index].data() as Map<String, dynamic>;
             final recipeId = filteredRecipes[index].id;
             final isLiked = (recipe['likes'] ?? []).contains(user?.uid);
             final isMine = recipe['authorId'] == user?.uid;
@@ -275,10 +296,9 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
                       child: Text(
                         recipe['authorEmail'] ?? 'Anónimo',
                         style: TextStyle(
-                          fontSize: 12, 
-                          color: Colors.blue,
-                          decoration: TextDecoration.underline
-                        ),
+                            fontSize: 12,
+                            color: Colors.blue,
+                            decoration: TextDecoration.underline),
                       ),
                     ),
                   ],
@@ -295,9 +315,21 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
                     Text("${(recipe['likes'] ?? []).length}"),
                     const SizedBox(width: 8),
                     isMine
-                        ? IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _confirmDelete(recipeId),
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit,
+                                    color: Colors.orange),
+                                onPressed: () =>
+                                    _showEditRecipeDialog(recipeId, recipe),
+                              ),
+                              IconButton(
+                                icon:
+                                    const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => _confirmDelete(recipeId),
+                              ),
+                            ],
                           )
                         : IconButton(
                             icon: Icon(
@@ -335,7 +367,8 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Eliminar receta'),
-        content: const Text('¿Estás seguro de que deseas eliminar esta receta?'),
+        content:
+            const Text('¿Estás seguro de que deseas eliminar esta receta?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -343,7 +376,10 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
           ),
           TextButton(
             onPressed: () async {
-              await FirebaseFirestore.instance.collection('recipes').doc(recipeId).delete();
+              await FirebaseFirestore.instance
+                  .collection('recipes')
+                  .doc(recipeId)
+                  .delete();
               Navigator.pop(context);
             },
             child: const Text('Eliminar'),
@@ -380,45 +416,157 @@ class _RecipesScreenState extends State<RecipesScreen> with SingleTickerProvider
     );
   }
 
+  void _showEditRecipeDialog(String recipeId, Map<String, dynamic> recipe) {
+    final titleController = TextEditingController(text: recipe['title']);
+    final descController = TextEditingController(text: recipe['description']);
+    final ingredientsController =
+        TextEditingController(text: recipe['ingredients']);
+    final instructionsController =
+        TextEditingController(text: recipe['instructions']);
+
+    bool isPublic = recipe['public'] ?? true;
+
+    showDialog(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text("Editar Receta"),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(labelText: 'Título'),
+                ),
+                TextField(
+                  controller: descController,
+                  decoration: const InputDecoration(labelText: 'Descripción'),
+                ),
+                TextField(
+                  controller: ingredientsController,
+                  decoration: const InputDecoration(labelText: 'Ingredientes'),
+                ),
+                TextField(
+                  controller: instructionsController,
+                  decoration: const InputDecoration(labelText: 'Instrucciones'),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text("¿Pública?"),
+                    Switch(
+                      value: isPublic,
+                      onChanged: (value) {
+                        setState(() {
+                          isPublic = value;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancelar"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await FirebaseFirestore.instance
+                    .collection('recipes')
+                    .doc(recipeId)
+                    .update({
+                  'title': titleController.text,
+                  'description': descController.text,
+                  'ingredients': ingredientsController.text,
+                  'instructions': instructionsController.text,
+                  'public': isPublic,
+                });
+                Navigator.pop(context);
+              },
+              child: const Text("Guardar Cambios"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showAddRecipeDialog() {
     final titleController = TextEditingController();
     final descController = TextEditingController();
     final ingredientsController = TextEditingController();
     final instructionsController = TextEditingController();
 
+    bool isPublic = true; // Valor por defecto
+
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Agregar Receta"),
-        content: SingleChildScrollView(
-          child: Column(
-            children: [
-              TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Título')),
-              TextField(controller: descController, decoration: const InputDecoration(labelText: 'Descripción')),
-              TextField(controller: ingredientsController, decoration: const InputDecoration(labelText: 'Ingredientes')),
-              TextField(controller: instructionsController, decoration: const InputDecoration(labelText: 'Instrucciones')),
-            ],
+      builder: (_) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text("Agregar Receta"),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(labelText: 'Título')),
+                TextField(
+                    controller: descController,
+                    decoration:
+                        const InputDecoration(labelText: 'Descripción')),
+                TextField(
+                    controller: ingredientsController,
+                    decoration:
+                        const InputDecoration(labelText: 'Ingredientes')),
+                TextField(
+                    controller: instructionsController,
+                    decoration:
+                        const InputDecoration(labelText: 'Instrucciones')),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text("¿Pública?"),
+                    Switch(
+                      value: isPublic,
+                      onChanged: (value) {
+                        setState(() {
+                          isPublic = value;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancelar")),
+            ElevatedButton(
+              onPressed: () async {
+                await FirebaseFirestore.instance.collection('recipes').add({
+                  'title': titleController.text,
+                  'description': descController.text,
+                  'ingredients': ingredientsController.text,
+                  'instructions': instructionsController.text,
+                  'authorId': user?.uid,
+                  'authorEmail': user?.email,
+                  'likes': [],
+                  'public': isPublic, // <-- Aquí se guarda si es pública o no
+                  'timestamp': FieldValue.serverTimestamp(),
+                });
+                Navigator.pop(context);
+              },
+              child: const Text("Guardar"),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
-          ElevatedButton(
-            onPressed: () async {
-              await FirebaseFirestore.instance.collection('recipes').add({
-                'title': titleController.text,
-                'description': descController.text,
-                'ingredients': ingredientsController.text,
-                'instructions': instructionsController.text,
-                'authorId': user?.uid,
-                'authorEmail': user?.email,
-                'likes': [],
-                'timestamp': FieldValue.serverTimestamp(),
-              });
-              Navigator.pop(context);
-            },
-            child: const Text("Guardar"),
-          ),
-        ],
       ),
     );
   }
