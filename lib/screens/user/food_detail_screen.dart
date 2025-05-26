@@ -7,16 +7,16 @@ class FoodDetailScreen extends StatelessWidget {
   final String description;
   final String calories;
   final String mealType;
-  
+
   const FoodDetailScreen({
-    super.key, 
-    required this.foodName, 
-    required this.imageUrl, 
-    required this.description, 
+    super.key,
+    required this.foodName,
+    required this.imageUrl,
+    required this.description,
     required this.calories,
     required this.mealType,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,27 +33,27 @@ class FoodDetailScreen extends StatelessWidget {
               width: double.infinity,
               height: 220,
               child: imageUrl.startsWith('http')
-                ? CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => const Center(
-                      child: CircularProgressIndicator(),
-                    ),
-                    errorWidget: (context, url, error) => Image.asset(
-                      'assets/carbonara.jpg',
+                  ? CachedNetworkImage(
+                      imageUrl: imageUrl,
                       fit: BoxFit.cover,
-                    ),
-                  )
-                : Image.asset(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Image.asset(
+                      placeholder: (context, url) => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                      errorWidget: (context, url, error) => Image.asset(
                         'assets/carbonara.jpg',
                         fit: BoxFit.cover,
-                      );
-                    },
-                  ),
+                      ),
+                    )
+                  : Image.asset(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset(
+                          'assets/carbonara.jpg',
+                          fit: BoxFit.cover,
+                        );
+                      },
+                    ),
             ),
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -72,7 +72,8 @@ class FoodDetailScreen extends StatelessWidget {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: Colors.blue.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
@@ -90,7 +91,8 @@ class FoodDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.green.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -121,7 +123,6 @@ class FoodDetailScreen extends StatelessWidget {
                       height: 1.5,
                     ),
                   ),
-                  
                   const SizedBox(height: 24),
                   const Text(
                     'Información Nutricional',
@@ -132,7 +133,6 @@ class FoodDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   _buildNutritionInfo(),
-                  
                   const SizedBox(height: 24),
                   const Text(
                     'Ingredientes',
@@ -151,7 +151,7 @@ class FoodDetailScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildNutritionInfo() {
     return Column(
       children: [
@@ -163,7 +163,7 @@ class FoodDetailScreen extends StatelessWidget {
       ],
     );
   }
-  
+
   Widget _buildNutritionRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -188,7 +188,7 @@ class FoodDetailScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildIngredientsList() {
     final ingredients = [
       'Ingrediente 1 - 100g',
@@ -197,7 +197,7 @@ class FoodDetailScreen extends StatelessWidget {
       'Ingrediente 4 - 30g',
       'Ingrediente 5 - 10g',
     ];
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: ingredients.map((ingredient) {

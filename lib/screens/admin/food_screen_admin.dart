@@ -13,13 +13,7 @@ class _FoodScreenAdminState extends State<FoodScreenAdmin> {
   List<String> daysOfWeek = [];
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = "";
-
-  final Map<String, List<String>> mealFoodRestrictions = {
-    'Desayuno': ['Ensalada'],
-    'Almuerzo': ['Pasta', 'Pollo'],
-    'Cena': ['Pizza', 'Pollo'],
-    'Snack': ['Ensalada', 'Pasta'],
-  };
+  String defaultFoodImage = 'assets/logo.png';
 
   @override
   void initState() {
@@ -46,7 +40,7 @@ class _FoodScreenAdminState extends State<FoodScreenAdmin> {
     });
   }
 
-  void addFoodToUser(String day, String mealType, String food) async {
+  void addRecipeToUser(String day, String mealType, String recipeId) async {
     if (selectedUserId != null) {
       final userRef =
           FirebaseFirestore.instance.collection('users').doc(selectedUserId);
@@ -54,47 +48,133 @@ class _FoodScreenAdminState extends State<FoodScreenAdmin> {
       await userRef.set({
         "meals": {
           day: {
-            mealType: FieldValue.arrayUnion([food])
+            mealType: FieldValue.arrayUnion([recipeId])
           }
         }
       }, SetOptions(merge: true));
     }
   }
 
-  void showFoodSelectionDialog(String day) {
+  void showRecipeSelectionDialog(String day) {
     String selectedMealType = "Desayuno";
+    final TextEditingController _searchController = TextEditingController();
+    String _searchQuery = "";
 
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(builder: (context, setState) {
           return AlertDialog(
-            title: const Text("Añadir plato"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButton<String>(
-                  value: selectedMealType,
-                  onChanged: (value) {
-                    setState(() {
-                      selectedMealType = value!;
-                    });
-                  },
-                  items: ["Desayuno", "Almuerzo", "Snack", "Cena"]
-                      .map((type) =>
-                          DropdownMenuItem(value: type, child: Text(type)))
-                      .toList(),
+            title: const Text("Añadir receta"),
+            content: SingleChildScrollView(
+              child: Container(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButton<String>(
+                      value: selectedMealType,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedMealType = value!;
+                        });
+                      },
+                      items: ["Desayuno", "Almuerzo", "Snack", "Cena"]
+                          .map((type) =>
+                              DropdownMenuItem(value: type, child: Text(type)))
+                          .toList(),
+                    ),
+                    TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Buscar recetas por nombre',
+                        prefixIcon: const Icon(Icons.search),
+                        filled: true,
+                        fillColor: Colors.grey.shade200,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 16),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value.toLowerCase();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: 300,
+                      ),
+                      child: StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('recipes')
+                            .where('public', isEqualTo: true)
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+
+                          final recipes = snapshot.data!.docs.where((doc) {
+                            final recipe = doc.data() as Map<String, dynamic>;
+                            final title =
+                                recipe['title']?.toString().toLowerCase() ?? '';
+                            return title.contains(_searchQuery);
+                          }).toList();
+
+                          return ListView.builder(
+                            shrinkWrap: true,
+                            physics: const BouncingScrollPhysics(),
+                            itemCount: recipes.length,
+                            itemBuilder: (context, index) {
+                              final recipeData =
+                                  recipes[index].data() as Map<String, dynamic>;
+                              final recipeId = recipes[index].id;
+                              final title = recipeData['title'] ?? 'Sin título';
+                              final description = recipeData['description'] ??
+                                  'Sin descripción';
+                              final imageUrl =
+                                  recipeData['imageUrl'] ?? defaultFoodImage;
+
+                              return ListTile(
+                                leading: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    imageUrl,
+                                    width: 50,
+                                    height: 50,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Image.asset(
+                                        defaultFoodImage,
+                                        width: 50,
+                                        height: 50,
+                                        fit: BoxFit.cover,
+                                      );
+                                    },
+                                  ),
+                                ),
+                                title: Text(title),
+                                subtitle: Text(description),
+                                onTap: () {
+                                  addRecipeToUser(
+                                      day, selectedMealType, recipeId);
+                                  Navigator.pop(context);
+                                },
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-                for (String food
-                    in mealFoodRestrictions[selectedMealType] ?? [])
-                  ListTile(
-                    title: Text(food),
-                    onTap: () {
-                      addFoodToUser(day, selectedMealType, food);
-                      Navigator.pop(context);
-                    },
-                  ),
-              ],
+              ),
             ),
           );
         });
@@ -169,7 +249,8 @@ class _FoodScreenAdminState extends State<FoodScreenAdmin> {
                               title: Text(name),
                               subtitle: Text(email),
                               selected: selectedUserId == userId,
-                              selectedTileColor: Theme.of(context).brightness == Brightness.dark
+                              selectedTileColor: Theme.of(context).brightness ==
+                                      Brightness.dark
                                   ? Colors.grey.shade800
                                   : Colors.blue.shade100,
                               shape: RoundedRectangleBorder(
@@ -193,8 +274,8 @@ class _FoodScreenAdminState extends State<FoodScreenAdmin> {
                           : const Center(
                               child: Text(
                                 'Selecciona un usuario para ver su plan alimenticio',
-                                style: TextStyle(
-                                    fontSize: 16, color: Colors.grey),
+                                style:
+                                    TextStyle(fontSize: 16, color: Colors.grey),
                               ),
                             ),
                     ),
@@ -324,34 +405,58 @@ class _FoodScreenAdminState extends State<FoodScreenAdmin> {
                                     ),
                                     if (meals[day] != null &&
                                         meals[day][mealType] != null)
-                                      for (String meal in List<String>.from(
+                                      for (String recipeId in List<String>.from(
                                           meals[day][mealType]))
-                                        ListTile(
-                                          leading: const Icon(Icons.restaurant),
-                                          title: Text(meal),
-                                          trailing: IconButton(
-                                            icon: const Icon(Icons.delete,
-                                                color: Colors.red),
-                                            onPressed: () async {
-                                              await FirebaseFirestore.instance
-                                                  .collection('users')
-                                                  .doc(selectedUserId)
-                                                  .update({
-                                                'meals.$day.$mealType':
-                                                    FieldValue.arrayRemove(
-                                                        [meal])
-                                              });
-                                            },
-                                          ),
+                                        StreamBuilder<DocumentSnapshot>(
+                                          stream: FirebaseFirestore.instance
+                                              .collection('recipes')
+                                              .doc(recipeId)
+                                              .snapshots(),
+                                          builder: (context, snapshot) {
+                                            if (!snapshot.hasData) {
+                                              return const Center(
+                                                  child:
+                                                      CircularProgressIndicator());
+                                            }
+
+                                            final recipeData =
+                                                snapshot.data!.data()
+                                                    as Map<String, dynamic>?;
+                                            final title =
+                                                recipeData?['title'] ??
+                                                    'Sin título';
+
+                                            return ListTile(
+                                              leading:
+                                                  const Icon(Icons.restaurant),
+                                              title: Text(title),
+                                              trailing: IconButton(
+                                                icon: const Icon(Icons.delete,
+                                                    color: Colors.red),
+                                                onPressed: () async {
+                                                  await FirebaseFirestore
+                                                      .instance
+                                                      .collection('users')
+                                                      .doc(selectedUserId)
+                                                      .update({
+                                                    'meals.$day.$mealType':
+                                                        FieldValue.arrayRemove(
+                                                            [recipeId])
+                                                  });
+                                                },
+                                              ),
+                                            );
+                                          },
                                         ),
                                   ],
                                 ),
                               Padding(
                                 padding: const EdgeInsets.all(16.0),
                                 child: ElevatedButton.icon(
-                                  onPressed: () => showFoodSelectionDialog(day),
+                                  onPressed: () =>
+                                      showRecipeSelectionDialog(day),
                                   icon: const Icon(Icons.add),
-                                  label: const Text("Añadir Plato"),
+                                  label: const Text("Añadir Receta"),
                                   style: ElevatedButton.styleFrom(
                                     foregroundColor: Colors.white,
                                     backgroundColor: Colors.blue,
