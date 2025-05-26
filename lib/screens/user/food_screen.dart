@@ -382,7 +382,7 @@ class _FoodScreenState extends State<FoodScreen> {
                     calendarBuilders: CalendarBuilders(
                       markerBuilder: (context, date, events) {
                         final dateKey = _formatDateKey(date);
-                        if (_meals.containsKey(dateKey)) {
+                        if (_meals.containsKey(dateKey) && _meals[dateKey] != null && (_meals[dateKey] as Map<String, dynamic>).isNotEmpty) {
                           return Positioned(
                             bottom: 1,
                             child: Container(

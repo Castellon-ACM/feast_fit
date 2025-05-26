@@ -55,6 +55,31 @@ class _FoodScreenAdminState extends State<FoodScreenAdmin> {
     }
   }
 
+  Future<void> removeRecipeFromUser(String day, String mealType, String recipeId) async {
+    if (selectedUserId != null) {
+      final userRef = FirebaseFirestore.instance.collection('users').doc(selectedUserId);
+
+      // Eliminar la receta del array
+      await userRef.update({
+        'meals.$day.$mealType': FieldValue.arrayRemove([recipeId])
+      });
+
+      // Obtener el documento actualizado
+      final userDoc = await userRef.get();
+      final userData = userDoc.data() as Map<String, dynamic>?;
+      final meals = userData?['meals'] ?? {};
+      final dayMeals = meals[day] ?? {};
+      final mealRecipes = dayMeals[mealType] ?? [];
+
+      // Verificar si el array está vacío y eliminar el campo si es necesario
+      if (mealRecipes.isEmpty) {
+        await userRef.update({
+          'meals.$day.$mealType': FieldValue.delete()
+        });
+      }
+    }
+  }
+
   void showRecipeSelectionDialog(String day) {
     String selectedMealType = "Desayuno";
     final TextEditingController _searchController = TextEditingController();
@@ -434,15 +459,8 @@ class _FoodScreenAdminState extends State<FoodScreenAdmin> {
                                                 icon: const Icon(Icons.delete,
                                                     color: Colors.red),
                                                 onPressed: () async {
-                                                  await FirebaseFirestore
-                                                      .instance
-                                                      .collection('users')
-                                                      .doc(selectedUserId)
-                                                      .update({
-                                                    'meals.$day.$mealType':
-                                                        FieldValue.arrayRemove(
-                                                            [recipeId])
-                                                  });
+                                                  await removeRecipeFromUser(
+                                                      day, mealType, recipeId);
                                                 },
                                               ),
                                             );
