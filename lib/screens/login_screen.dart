@@ -124,8 +124,14 @@ class _LoginScreenState extends State<LoginScreen>
       final User? user = userCredential.user;
 
       if (user != null) {
-        // Guardar o actualizar la información básica del usuario en Firestore
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        // Obtener el documento del usuario en Firestore
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        // Crear un mapa para los datos del usuario
+        final userData = {
           'email': user.email,
           'displayName': user.displayName,
           'photoURL': user.photoURL,
@@ -136,8 +142,21 @@ class _LoginScreenState extends State<LoginScreen>
           'sportActivity': "",
           'isAdmin': false,
           'chartData': [],
-          'meals': {},
-        }, SetOptions(merge: true));
+        };
+
+        // Si el usuario ya existe, no sobrescribir el campo 'meals'
+        if (userDoc.exists) {
+          final existingData = userDoc.data() as Map<String, dynamic>;
+          if (existingData.containsKey('meals')) {
+            userData['meals'] = existingData['meals'];
+          }
+        }
+
+        // Guardar o actualizar la información básica del usuario en Firestore
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set(
+              userData,
+              SetOptions(merge: true),
+            );
 
         // Navegar a la pantalla principal
         Navigator.pushReplacement(
