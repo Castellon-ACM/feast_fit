@@ -40,7 +40,7 @@ class ExerciseCard extends StatelessWidget {
               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
               child: Image.asset(
                 imageUrl,
-                height: 200,
+                height: 300,
                 width: double.infinity,
                 fit: BoxFit.cover,
                 alignment: Alignment.center,
