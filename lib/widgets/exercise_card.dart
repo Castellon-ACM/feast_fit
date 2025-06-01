@@ -5,7 +5,7 @@ class ExerciseCard extends StatelessWidget {
   final String title;
   final String description;
   final String imageUrl;
-  final String url; // NUEVO parámetro
+  final String url;
 
   const ExerciseCard({
     super.key,
@@ -18,7 +18,7 @@ class ExerciseCard extends StatelessWidget {
   void _launchURL() async {
     final Uri uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      await launchUrl(uri, mode: LaunchMode.platformDefault);
     } else {
       throw 'No se pudo abrir la URL: $url';
     }
