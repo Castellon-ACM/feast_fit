@@ -17,8 +17,12 @@ class ExerciseCard extends StatelessWidget {
 
   void _launchURL() async {
     final Uri uri = Uri.parse(url);
+
     if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.platformDefault);
+      final bool launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        throw 'No se pudo lanzar la URL: $url';
+      }
     } else {
       throw 'No se pudo abrir la URL: $url';
     }
