@@ -18,30 +18,30 @@ class ExerciseScreen extends StatelessWidget {
                   ExerciseCard(
                     title: 'Flexiones',
                     description:
-                        'Las flexiones son un ejercicio excelente para fortalecer los brazos, el pecho y los hombros.',
+                        'Las flexiones son un ejercicio excelente para fortalecer los brazos, el pecho y los hombros. Realiza 3 series de 10 repeticiones.',
                     imageUrl: 'assets/flexiones.png',
-                    url: 'https://feastfit.kesug.com/flexiones/',
+                    url: 'https://es.wikipedia.org/wiki/Flexi%C3%B3n_de_codos',
                   ),
                   ExerciseCard(
                     title: 'Sentadillas',
                     description:
-                        'Las sentadillas son perfectas para trabajar las piernas y los glúteos.',
+                        'Las sentadillas son perfectas para trabajar las piernas y los glúteos. Realiza 3 series de 15 repeticiones.',
                     imageUrl: 'assets/sentadillas.png',
-                    url: 'https://feastfit.kesug.com/sentadillas/',
+                    url: 'https://es.wikipedia.org/wiki/Sentadilla',
                   ),
                   ExerciseCard(
                     title: 'Abdominales',
                     description:
-                        'Los abdominales ayudan a fortalecer el núcleo.',
+                        'Los abdominales ayudan a fortalecer el núcleo. Realiza 3 series de 20 repeticiones.',
                     imageUrl: 'assets/abdominales.png',
-                    url: 'https://feastfit.kesug.com/abdominales/',
+                    url: 'https://www.mayoclinic.org/es/healthy-lifestyle/fitness/multimedia/abdominal-crunch/vid-20084664',
                   ),
                   ExerciseCard(
                     title: 'Plancha',
                     description:
-                        'La plancha es un ejercicio isométrico que fortalece el núcleo y los músculos estabilizadores.',
+                        'La plancha es un ejercicio isométrico que fortalece el núcleo y los músculos estabilizadores. Mantén la posición durante 30 segundos, 3 series.',
                     imageUrl: 'assets/plancha.webp',
-                    url: 'https://feastfit.kesug.com/plancha/',
+                    url: 'https://www.respirapilates.com/plancha-abdominal-fortalecer-abdomen-y-torso/',
                   ),
                 ],
               ),
