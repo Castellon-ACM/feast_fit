@@ -1,11 +1,10 @@
-import 'dart:convert';
-
+import 'package:feast_fit/screens/user/food_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/services.dart';
 import 'package:feast_fit/widgets/widgets.dart';
+
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -28,7 +27,9 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 10),
                 Text(
                   'Explora recetas saludables y personaliza tu plan de alimentación.',
-                  style: TextStyle(fontSize: 16, color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                  style: TextStyle(
+                      fontSize: 16,
+                      color: theme.colorScheme.onSurface.withOpacity(0.6)),
                 ),
                 const SizedBox(height: 20),
                 Expanded(
@@ -67,7 +68,10 @@ class HomeScreen extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           gradient: LinearGradient(
-            colors: [theme.primaryColorDark.withOpacity(0.6), Colors.transparent],
+            colors: [
+              theme.primaryColorDark.withOpacity(0.6),
+              Colors.transparent
+            ],
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
           ),
@@ -77,10 +81,9 @@ class HomeScreen extends StatelessWidget {
           child: Text(
             'Receta Destacada: Ensalada Cesar',
             style: TextStyle(
-              color: theme.colorScheme.onPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.bold
-            ),
+                color: theme.colorScheme.onPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.bold),
           ),
         ),
       ),
@@ -103,30 +106,17 @@ class HomeScreen extends StatelessWidget {
           child: ListView(
             scrollDirection: Axis.horizontal,
             children: [
-              _buildRecipeCard(context, 'Smoothie de Fresa', 'assets/smoothie.jpg'),
-              _buildRecipeCard(context, 'Avena con Frutas', 'assets/oatmeal.jpg'),
-              _buildRecipeCard(context, 'Tostadas con Aguacate', 'assets/aguacate.jpg'),
+              _buildRecipeCard(
+                  context, 'Smoothie de Fresa', 'assets/smoothie.jpg'),
+              _buildRecipeCard(
+                  context, 'Avena con Frutas', 'assets/oatmeal.jpg'),
+              _buildRecipeCard(
+                  context, 'Tostadas con Aguacate', 'assets/aguacate.jpg'),
             ],
           ),
         ),
       ],
     );
-  }
-
- Future<List<String>> _loadAssetImages() async {
-    // Cargar todas las imágenes de la carpeta assets
-    final List<String> imagePaths = [];
-    final manifestContent = await rootBundle.loadString('AssetManifest.json');
-    final Map<String, dynamic> manifestMap = json.decode(manifestContent);
-
-    // Filtrar las imágenes que están en la carpeta assets
-    manifestMap.forEach((key, value) {
-      if (key.startsWith('assets/') && (key.endsWith('.jpg') || key.endsWith('.png'))) {
-        imagePaths.add(key);
-      }
-    });
-
-    return imagePaths;
   }
 
   Widget _buildDailyPlan(BuildContext context) {
@@ -137,11 +127,11 @@ class HomeScreen extends StatelessWidget {
     return FutureBuilder<DocumentSnapshot>(
       future: FirebaseFirestore.instance
           .collection('users')
-          .doc(FirebaseAuth.instance.currentUser ?.uid)
+          .doc(FirebaseAuth.instance.currentUser?.uid)
           .get(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const CircularProgressIndicator();
+          return const Center(child: CircularProgressIndicator());
         }
 
         if (snapshot.hasError) {
@@ -169,55 +159,97 @@ class HomeScreen extends StatelessWidget {
           );
         }
 
-        return FutureBuilder<List<String>>(
-          future: _loadAssetImages(),
-          builder: (context, imageSnapshot) {
-            if (imageSnapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator();
-            }
+        // Ordenar las comidas por tipo
+        final mealTypes = ["Desayuno", "Almuerzo", "Snack", "Cena"];
 
-            if (imageSnapshot.hasError) {
-              return const Text('Error al cargar las imágenes');
-            }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Plan del Día',
+              style: theme.textTheme.titleLarge,
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 150,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: mealTypes.map<Widget>((mealType) {
+                  final foodList = dayMeals[mealType] as List<dynamic>? ?? [];
 
-            final imagePaths = imageSnapshot.data ?? [];
+                  if (foodList.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Plan del Día',
-                  style: theme.textTheme.titleLarge,
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 150,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: dayMeals.length,
-                    itemBuilder: (context, index) {
-                      final mealType = dayMeals.keys.elementAt(index);
-                      final foodList = dayMeals[mealType] as List<dynamic>? ?? [];
-                      
-                      final randomImage = (imagePaths.isNotEmpty) ? imagePaths[index % imagePaths.length] : 'assets/carbonara.jpg';
+                  return FutureBuilder<QuerySnapshot>(
+                    future: FirebaseFirestore.instance
+                        .collection('recipes')
+                        .where(FieldPath.documentId, whereIn: foodList)
+                        .get(),
+                    builder: (context, recipeSnapshot) {
+                      if (recipeSnapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                      return _buildRecipeCard(
-                        context,
-                        '$mealType: ${foodList.join(", ")}',
-                        randomImage,
+                      if (recipeSnapshot.hasError) {
+                        return const Text('Error al cargar las recetas');
+                      }
+
+                      final recipes = recipeSnapshot.data?.docs ?? [];
+
+                      if (recipes.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
+
+                      return Row(
+                        children: recipes.map<Widget>((recipeDoc) {
+                          final recipeData =
+                              recipeDoc.data() as Map<String, dynamic>;
+                          final title = recipeData['title'] ?? 'Sin título';
+                          final imageUrl =
+                              recipeData['imageUrl'] ?? 'assets/logo.png';
+                          final description =
+                              recipeData['description'] ?? 'Sin descripción';
+                          final calories =
+                              recipeData['calories'] ?? '400 calorías';
+
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 10),
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => FoodDetailScreen(
+                                      foodName: title,
+                                      imageUrl: imageUrl,
+                                      description: description,
+                                      calories: calories,
+                                      mealType: mealType,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: _buildRecipeCard(
+                                  context, title, imageUrl),
+                            ),
+                          );
+                        }).toList(),
                       );
                     },
-                  ),
-                ),
-              ],
-            );
-          },
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
         );
       },
     );
   }
 
-  Widget _buildRecipeCard(BuildContext context, String title, String imagePath) {
+  Widget _buildRecipeCard(
+      BuildContext context, String title, String imagePath) {
     final theme = Theme.of(context);
 
     return Padding(
@@ -226,18 +258,36 @@ class HomeScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Stack(
           children: [
-            Image.asset(
-              imagePath,
-              width: 130,
-              height: 130,
-              fit: BoxFit.cover,
-            ),
+            imagePath.startsWith('http')
+                ? Image.network(
+                    imagePath,
+                    width: 130,
+                    height: 130,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Image.asset(
+                        'assets/logo.png',
+                        width: 130,
+                        height: 130,
+                        fit: BoxFit.cover,
+                      );
+                    },
+                  )
+                : Image.asset(
+                    imagePath,
+                    width: 130,
+                    height: 130,
+                    fit: BoxFit.cover,
+                  ),
             Container(
               width: 130,
               height: 130,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [theme.primaryColorDark.withOpacity(0.6), Colors.transparent],
+                  colors: [
+                    theme.primaryColorDark.withOpacity(0.6),
+                    Colors.transparent
+                  ],
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
                 ),
@@ -249,9 +299,8 @@ class HomeScreen extends StatelessWidget {
                   child: Text(
                     title,
                     style: TextStyle(
-                      color: theme.colorScheme.onPrimary,
-                      fontWeight: FontWeight.bold
-                    ),
+                        color: theme.colorScheme.onPrimary,
+                        fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
