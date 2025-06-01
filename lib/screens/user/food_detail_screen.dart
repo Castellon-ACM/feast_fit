@@ -32,7 +32,7 @@ class FoodDetailScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               height: 220,
-              child: imageUrl.startsWith('http')
+              child: imageUrl.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: imageUrl,
                       fit: BoxFit.cover,
@@ -40,19 +40,13 @@ class FoodDetailScreen extends StatelessWidget {
                         child: CircularProgressIndicator(),
                       ),
                       errorWidget: (context, url, error) => Image.asset(
-                        'assets/carbonara.jpg',
+                        'assets/logo.png',
                         fit: BoxFit.cover,
                       ),
                     )
                   : Image.asset(
-                      imageUrl,
+                      'assets/logo.png',
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Image.asset(
-                          'assets/carbonara.jpg',
-                          fit: BoxFit.cover,
-                        );
-                      },
                     ),
             ),
             Padding(

@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../models/food_data.dart';
 import '../screens.dart';
 
 class FoodScreen extends StatefulWidget {
@@ -63,19 +62,8 @@ class _FoodScreenState extends State<FoodScreen> {
     return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
   }
 
-  String _getFoodImage(String foodName) {
-    return foodImages[foodName] ?? defaultFoodImage;
-  }
-
-  String _estimateCalories(String foodName) {
-    return caloriesMap[foodName] ?? '400 calorías';
-  }
-
-  String _generateDescription(String foodName) {
-    return descriptions[foodName] ?? 'Plato nutritivo preparado con ingredientes frescos';
-  }
-
-  Widget _buildFoodItem(BuildContext context, String recipeId, String mealType) {
+  Widget _buildFoodItem(
+      BuildContext context, String recipeId, String mealType) {
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
           .collection('recipes')
@@ -89,7 +77,8 @@ class _FoodScreenState extends State<FoodScreen> {
         final recipeData = snapshot.data!.data() as Map<String, dynamic>?;
         final title = recipeData?['title'] ?? 'Sin título';
         final description = recipeData?['description'] ?? 'Sin descripción';
-        final imageUrl = recipeData?['imageUrl'] ?? defaultFoodImage;
+        final imageUrl =
+            recipeData?['imageUrl'] ?? ''; // Valor predeterminado para imageUrl
         final calories = recipeData?['calories'] ?? '400 calorías';
 
         return Padding(
@@ -133,7 +122,7 @@ class _FoodScreenState extends State<FoodScreen> {
                     child: SizedBox(
                       width: 100,
                       height: double.infinity,
-                      child: imageUrl.startsWith('http')
+                      child: imageUrl.isNotEmpty
                           ? CachedNetworkImage(
                               imageUrl: imageUrl,
                               fit: BoxFit.cover,
@@ -141,19 +130,13 @@ class _FoodScreenState extends State<FoodScreen> {
                                 child: CircularProgressIndicator(),
                               ),
                               errorWidget: (context, url, error) => Image.asset(
-                                defaultFoodImage,
+                                'assets/logo.png',
                                 fit: BoxFit.cover,
                               ),
                             )
                           : Image.asset(
-                              defaultFoodImage,
+                              'assets/logo.png',
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Image.asset(
-                                  defaultFoodImage,
-                                  fit: BoxFit.cover,
-                                );
-                              },
                             ),
                     ),
                   ),
@@ -251,7 +234,9 @@ class _FoodScreenState extends State<FoodScreen> {
             ),
           ),
         ),
-        ...recipeIds.map((recipeId) => _buildFoodItem(context, recipeId, mealType)).toList(),
+        ...recipeIds
+            .map((recipeId) => _buildFoodItem(context, recipeId, mealType))
+            .toList(),
       ],
     );
   }
@@ -349,7 +334,8 @@ class _FoodScreenState extends State<FoodScreen> {
                     ),
                   ),
                   TableCalendar(
-                    firstDay: DateTime.now().subtract(const Duration(days: 365)),
+                    firstDay:
+                        DateTime.now().subtract(const Duration(days: 365)),
                     lastDay: DateTime.now().add(const Duration(days: 365)),
                     focusedDay: _focusedDay,
                     calendarFormat: CalendarFormat.month,
@@ -363,7 +349,8 @@ class _FoodScreenState extends State<FoodScreen> {
                     headerStyle: const HeaderStyle(
                       formatButtonVisible: false,
                       titleCentered: true,
-                      titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      titleTextStyle:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     calendarStyle: CalendarStyle(
                       todayDecoration: BoxDecoration(
@@ -382,7 +369,10 @@ class _FoodScreenState extends State<FoodScreen> {
                     calendarBuilders: CalendarBuilders(
                       markerBuilder: (context, date, events) {
                         final dateKey = _formatDateKey(date);
-                        if (_meals.containsKey(dateKey) && _meals[dateKey] != null && (_meals[dateKey] as Map<String, dynamic>).isNotEmpty) {
+                        if (_meals.containsKey(dateKey) &&
+                            _meals[dateKey] != null &&
+                            (_meals[dateKey] as Map<String, dynamic>)
+                                .isNotEmpty) {
                           return Positioned(
                             bottom: 1,
                             child: Container(
@@ -401,14 +391,16 @@ class _FoodScreenState extends State<FoodScreen> {
                   ),
                   const Divider(),
                   if (_isLoading)
-                    const Expanded(child: Center(child: CircularProgressIndicator()))
+                    const Expanded(
+                        child: Center(child: CircularProgressIndicator()))
                   else if (_errorMessage != null)
                     Expanded(
                       child: Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(_errorMessage!, style: const TextStyle(fontSize: 16)),
+                            Text(_errorMessage!,
+                                style: const TextStyle(fontSize: 16)),
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: _loadMeals,
