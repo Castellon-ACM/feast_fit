@@ -5,7 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:feast_fit/widgets/widgets.dart';
 
-
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -103,16 +102,60 @@ class HomeScreen extends StatelessWidget {
         const SizedBox(height: 10),
         SizedBox(
           height: 150,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              _buildRecipeCard(
-                  context, 'Smoothie de Fresa', 'assets/smoothie.jpg'),
-              _buildRecipeCard(
-                  context, 'Avena con Frutas', 'assets/oatmeal.jpg'),
-              _buildRecipeCard(
-                  context, 'Tostadas con Aguacate', 'assets/aguacate.jpg'),
-            ],
+          child: FutureBuilder<QuerySnapshot>(
+            future: FirebaseFirestore.instance
+                .collection('recipes')
+                .where('public',
+                    isEqualTo:
+                        true) 
+                .get(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return const Text('Error al cargar recomendaciones');
+              }
+
+              final docs = snapshot.data?.docs ?? [];
+
+              if (docs.isEmpty) {
+                return const Text('No hay recetas públicas disponibles');
+              }
+
+              docs.shuffle();
+              final randomRecipes = docs.take(5).toList();
+
+              return ListView(
+                scrollDirection: Axis.horizontal,
+                children: randomRecipes.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final title = data['title'] ?? 'Sin título';
+                  final imageUrl = data['imageUrl'] ?? 'assets/logo.png';
+                  final description = data['description'] ?? 'Sin descripción';
+                  final calories = data['calories'] ?? '400 calorías';
+
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FoodDetailScreen(
+                            foodName: title,
+                            imageUrl: imageUrl,
+                            description: description,
+                            calories: calories,
+                            mealType: 'Recomendación',
+                          ),
+                        ),
+                      );
+                    },
+                    child: _buildRecipeCard(context, title, imageUrl),
+                  );
+                }).toList(),
+              );
+            },
           ),
         ),
       ],
@@ -159,7 +202,6 @@ class HomeScreen extends StatelessWidget {
           );
         }
 
-        // Ordenar las comidas por tipo
         final mealTypes = ["Desayuno", "Almuerzo", "Snack", "Cena"];
 
         return Column(
@@ -231,8 +273,7 @@ class HomeScreen extends StatelessWidget {
                                   ),
                                 );
                               },
-                              child: _buildRecipeCard(
-                                  context, title, imageUrl),
+                              child: _buildRecipeCard(context, title, imageUrl),
                             ),
                           );
                         }).toList(),
@@ -249,8 +290,9 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildRecipeCard(
-      BuildContext context, String title, String imagePath) {
+      BuildContext context, String title, String? imagePath) {
     final theme = Theme.of(context);
+    final isNetworkImage = imagePath != null && imagePath.startsWith('http');
 
     return Padding(
       padding: const EdgeInsets.only(right: 10),
@@ -258,9 +300,9 @@ class HomeScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Stack(
           children: [
-            imagePath.startsWith('http')
+            isNetworkImage
                 ? Image.network(
-                    imagePath,
+                    imagePath!,
                     width: 130,
                     height: 130,
                     fit: BoxFit.cover,
@@ -274,10 +316,23 @@ class HomeScreen extends StatelessWidget {
                     },
                   )
                 : Image.asset(
-                    imagePath,
+                    (imagePath != null &&
+                            imagePath.isNotEmpty &&
+                            !imagePath
+                                .contains('asdda')) // previene paths falsos
+                        ? imagePath
+                        : 'assets/logo.png',
                     width: 130,
                     height: 130,
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Image.asset(
+                        'assets/logo.png',
+                        width: 130,
+                        height: 130,
+                        fit: BoxFit.cover,
+                      );
+                    },
                   ),
             Container(
               width: 130,
@@ -299,8 +354,9 @@ class HomeScreen extends StatelessWidget {
                   child: Text(
                     title,
                     style: TextStyle(
-                        color: theme.colorScheme.onPrimary,
-                        fontWeight: FontWeight.bold),
+                      color: theme.colorScheme.onPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),

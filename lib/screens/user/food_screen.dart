@@ -62,6 +62,13 @@ class _FoodScreenState extends State<FoodScreen> {
     return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
   }
 
+  bool isValidUrl(String url) {
+    final uri = Uri.tryParse(url);
+    return uri != null &&
+        uri.hasAbsolutePath &&
+        (uri.isScheme('http') || uri.isScheme('https'));
+  }
+
   Widget _buildFoodItem(
       BuildContext context, String recipeId, String mealType) {
     return StreamBuilder<DocumentSnapshot>(
@@ -77,9 +84,10 @@ class _FoodScreenState extends State<FoodScreen> {
         final recipeData = snapshot.data!.data() as Map<String, dynamic>?;
         final title = recipeData?['title'] ?? 'Sin título';
         final description = recipeData?['description'] ?? 'Sin descripción';
-        final imageUrl =
-            recipeData?['imageUrl'] ?? ''; // Valor predeterminado para imageUrl
+        final imageUrl = recipeData?['imageUrl'] ?? '';
         final calories = recipeData?['calories'] ?? '400 calorías';
+
+        final validImageUrl = isValidUrl(imageUrl);
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -90,7 +98,7 @@ class _FoodScreenState extends State<FoodScreen> {
                 MaterialPageRoute(
                   builder: (context) => FoodDetailScreen(
                     foodName: title,
-                    imageUrl: imageUrl,
+                    imageUrl: validImageUrl ? imageUrl : '',
                     description: description,
                     calories: calories,
                     mealType: mealType,
@@ -122,7 +130,7 @@ class _FoodScreenState extends State<FoodScreen> {
                     child: SizedBox(
                       width: 100,
                       height: double.infinity,
-                      child: imageUrl.isNotEmpty
+                      child: validImageUrl
                           ? CachedNetworkImage(
                               imageUrl: imageUrl,
                               fit: BoxFit.cover,
