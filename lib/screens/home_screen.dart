@@ -8,6 +8,17 @@ import 'package:feast_fit/widgets/widgets.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
+  // Método para validar URLs
+  bool isValidUrl(String? url) {
+    if (url == null || url.isEmpty) return false;
+    
+    final uri = Uri.tryParse(url);
+    return uri != null &&
+        uri.hasAbsolutePath &&
+        (uri.isScheme('http') || uri.isScheme('https')) &&
+        url.contains('.'); // Verificación adicional para asegurar que tiene formato URL
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -105,9 +116,7 @@ class HomeScreen extends StatelessWidget {
           child: FutureBuilder<QuerySnapshot>(
             future: FirebaseFirestore.instance
                 .collection('recipes')
-                .where('public',
-                    isEqualTo:
-                        true) 
+                .where('public', isEqualTo: true) 
                 .get(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -132,9 +141,12 @@ class HomeScreen extends StatelessWidget {
                 children: randomRecipes.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
                   final title = data['title'] ?? 'Sin título';
-                  final imageUrl = data['imageUrl'] ?? 'assets/logo.png';
+                  final imageUrl = data['imageUrl'] ?? '';
                   final description = data['description'] ?? 'Sin descripción';
                   final calories = data['calories'] ?? '400 calorías';
+
+                  // Solo pasa URL válidas o string vacío
+                  final validImageUrl = isValidUrl(imageUrl) ? imageUrl : '';
 
                   return GestureDetector(
                     onTap: () {
@@ -143,7 +155,7 @@ class HomeScreen extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (context) => FoodDetailScreen(
                             foodName: title,
-                            imageUrl: imageUrl,
+                            imageUrl: validImageUrl, // Solo URL válidas o vacío
                             description: description,
                             calories: calories,
                             mealType: 'Recomendación',
@@ -151,7 +163,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                       );
                     },
-                    child: _buildRecipeCard(context, title, imageUrl),
+                    child: _buildRecipeCard(context, title, validImageUrl),
                   );
                 }).toList(),
               );
@@ -249,12 +261,14 @@ class HomeScreen extends StatelessWidget {
                           final recipeData =
                               recipeDoc.data() as Map<String, dynamic>;
                           final title = recipeData['title'] ?? 'Sin título';
-                          final imageUrl =
-                              recipeData['imageUrl'] ?? 'assets/logo.png';
+                          final imageUrl = recipeData['imageUrl'] ?? '';
                           final description =
                               recipeData['description'] ?? 'Sin descripción';
                           final calories =
                               recipeData['calories'] ?? '400 calorías';
+
+                          // Solo pasa URL válidas o string vacío
+                          final validImageUrl = isValidUrl(imageUrl) ? imageUrl : '';
 
                           return Padding(
                             padding: const EdgeInsets.only(right: 10),
@@ -265,7 +279,7 @@ class HomeScreen extends StatelessWidget {
                                   MaterialPageRoute(
                                     builder: (context) => FoodDetailScreen(
                                       foodName: title,
-                                      imageUrl: imageUrl,
+                                      imageUrl: validImageUrl, // Solo URL válidas o vacío
                                       description: description,
                                       calories: calories,
                                       mealType: mealType,
@@ -273,7 +287,7 @@ class HomeScreen extends StatelessWidget {
                                   ),
                                 );
                               },
-                              child: _buildRecipeCard(context, title, imageUrl),
+                              child: _buildRecipeCard(context, title, validImageUrl),
                             ),
                           );
                         }).toList(),
@@ -289,10 +303,9 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRecipeCard(
-      BuildContext context, String title, String? imagePath) {
+  Widget _buildRecipeCard(BuildContext context, String title, String? imagePath) {
     final theme = Theme.of(context);
-    final isNetworkImage = imagePath != null && imagePath.startsWith('http');
+    final isValidImageUrl = isValidUrl(imagePath);
 
     return Padding(
       padding: const EdgeInsets.only(right: 10),
@@ -300,7 +313,8 @@ class HomeScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Stack(
           children: [
-            isNetworkImage
+            // Si es una URL válida, usar Image.network, sino usar asset por defecto
+            isValidImageUrl
                 ? Image.network(
                     imagePath!,
                     width: 130,
@@ -316,21 +330,16 @@ class HomeScreen extends StatelessWidget {
                     },
                   )
                 : Image.asset(
-                    (imagePath != null &&
-                            imagePath.isNotEmpty &&
-                            !imagePath
-                                .contains('asdda')) // previene paths falsos
-                        ? imagePath
-                        : 'assets/logo.png',
+                    'assets/logo.png', // Siempre usar logo por defecto si no es URL válida
                     width: 130,
                     height: 130,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
-                      return Image.asset(
-                        'assets/logo.png',
+                      return Container(
                         width: 130,
                         height: 130,
-                        fit: BoxFit.cover,
+                        color: Colors.grey[300],
+                        child: const Icon(Icons.image_not_supported),
                       );
                     },
                   ),
