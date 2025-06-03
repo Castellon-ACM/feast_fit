@@ -20,7 +20,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _weightController = TextEditingController();
   final TextEditingController _heightController = TextEditingController();
-  final TextEditingController _sportActivityController = TextEditingController();
+  
+  // Cambiamos a String? para el dropdown
+  String? _selectedSportActivity;
+  
+  final List<String> _sportActivityOptions = [
+    'Ninguno',
+    '1-2 veces por semana',
+    '3-4 veces por semana',
+    '5 o más veces por semana'
+  ];
   
   Map<String, dynamic> _userData = {};
 
@@ -42,7 +51,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _emailController.dispose();
     _weightController.dispose();
     _heightController.dispose();
-    _sportActivityController.dispose();
     super.dispose();
   }
 
@@ -51,8 +59,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _emailController.text = _userData['email'] ?? '';
     _weightController.text = _userData['weight'] ?? '';
     _heightController.text = _userData['height'] ?? '';
-    _sportActivityController.text = _userData['sportActivity'] ?? '';
-    print("Datos cargados en controladores: Nombre=${_nameController.text}, Email=${_emailController.text}");
+    
+    // Cargar la actividad deportiva seleccionada
+    String? savedActivity = _userData['sportActivity'];
+    if (savedActivity != null && _sportActivityOptions.contains(savedActivity)) {
+      _selectedSportActivity = savedActivity;
+    } else {
+      _selectedSportActivity = null;
+    }
+    
+    print("Datos cargados en controladores: Nombre=${_nameController.text}, Email=${_emailController.text}, Actividad=$_selectedSportActivity");
   }
 
   Future<void> _saveUserData() async {
@@ -67,9 +83,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           final updatedData = {
             'name': _nameController.text,
             'email': _emailController.text,
-            'weight': _weightController.text,  // Se guarda como String
-            'height': _heightController.text,  // Se guarda como String
-            'sportActivity': _sportActivityController.text,
+            'weight': _weightController.text,
+            'height': _heightController.text,
+            'sportActivity': _selectedSportActivity ?? '',
           };
           
           print("Guardando datos: $updatedData");
@@ -137,7 +153,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 } else if (snapshot.hasError) {
-                  return Center(child: Text('Error al cargar los datos: ${snapshot.error}'));
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        'Error al cargar los datos: ${snapshot.error}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  );
                 } else if (snapshot.hasData) {
                   if (!_dataLoaded) {
                     _userData = snapshot.data!;
@@ -146,7 +171,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   }
                   return _buildContent();
                 } else {
-                  return const Center(child: Text('No hay datos disponibles'));
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text(
+                        'No hay datos disponibles',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  );
                 }
               },
             ),
@@ -155,7 +189,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: _isSaving ? null : _saveUserData,
               backgroundColor: _isSaving ? Colors.grey : Colors.brown,
               child: _isSaving
-                  ? const CircularProgressIndicator(color: Colors.white)
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
                   : const Icon(Icons.save),
             )
           : null,
@@ -165,8 +206,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildContent() {
     return Container(
       color: Colors.brown[50],
-      padding: const EdgeInsets.all(16.0),
-      child: Center(
+      width: double.infinity,
+      height: double.infinity,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
         child: Card(
           elevation: 4,
           shape: RoundedRectangleBorder(
@@ -184,11 +227,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildDisplayProfile() {
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Center(
+          child: Text(
             'Perfil de Usuario',
             style: TextStyle(
               fontSize: 24,
@@ -196,25 +240,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: Color.fromARGB(255, 104, 79, 74),
             ),
           ),
-          const SizedBox(height: 20),
-          _buildUserInfo('Nombre', _userData['name'] ?? ''),
-          _buildUserInfo('Correo', _userData['email'] ?? ''),
-          _buildUserInfo('Peso', '${_userData['weight'] ?? 0} kg'),
-          _buildUserInfo('Altura', '${_userData['height'] ?? 0} cm'),
-          _buildUserInfo('Actividad Deportiva', _userData['sportActivity'] ?? ''),
-        ],
-      ),
+        ),
+        const SizedBox(height: 20),
+        _buildUserInfo('Nombre', _userData['name'] ?? ''),
+        _buildUserInfo('Correo', _userData['email'] ?? ''),
+        _buildUserInfo('Peso', '${_userData['weight'] ?? 0} kg'),
+        _buildUserInfo('Altura', '${_userData['height'] ?? 0} cm'),
+        _buildUserInfo('Actividad Deportiva', _userData['sportActivity'] ?? ''),
+      ],
     );
   }
 
   Widget _buildEditableForm() {
-    return SingleChildScrollView(
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Center(
+            child: Text(
               'Editar Perfil',
               style: TextStyle(
                 fontSize: 24,
@@ -222,49 +267,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: Color.fromARGB(255, 104, 79, 74),
               ),
             ),
-            const SizedBox(height: 20),
-            _buildTextField(
-              controller: _nameController,
-              label: 'Nombre',
-              validator: (value) => value!.isEmpty ? 'Ingrese su nombre' : null,
-            ),
-            _buildTextField(
-              controller: _emailController,
-              label: 'Correo',
-              keyboardType: TextInputType.emailAddress,
-              validator: (value) {
-                if (value!.isEmpty) return 'Ingrese su correo';
-                if (!value.contains('@')) return 'Ingrese un correo válido';
-                return null;
-              },
-            ),
-            _buildTextField(
-              controller: _weightController,
-              label: 'Peso (kg)',
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value!.isEmpty) return 'Ingrese su peso';
-                if (double.tryParse(value) == null) return 'Ingrese un número válido';
-                return null;
-              },
-            ),
-            _buildTextField(
-              controller: _heightController,
-              label: 'Altura (cm)',
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value!.isEmpty) return 'Ingrese su altura';
-                if (double.tryParse(value) == null) return 'Ingrese un número válido';
-                return null;
-              },
-            ),
-            _buildTextField(
-              controller: _sportActivityController,
-              label: 'Actividad Deportiva',
-              validator: (value) => value!.isEmpty ? 'Ingrese su actividad deportiva' : null,
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 20),
+          _buildTextField(
+            controller: _nameController,
+            label: 'Nombre',
+            validator: (value) => value!.isEmpty ? 'Ingrese su nombre' : null,
+          ),
+          _buildTextField(
+            controller: _emailController,
+            label: 'Correo',
+            keyboardType: TextInputType.emailAddress,
+            validator: (value) {
+              if (value!.isEmpty) return 'Ingrese su correo';
+              if (!value.contains('@')) return 'Ingrese un correo válido';
+              return null;
+            },
+          ),
+          _buildTextField(
+            controller: _weightController,
+            label: 'Peso (kg)',
+            keyboardType: TextInputType.number,
+            validator: (value) {
+              if (value!.isEmpty) return 'Ingrese su peso';
+              if (double.tryParse(value) == null) return 'Ingrese un número válido';
+              return null;
+            },
+          ),
+          _buildTextField(
+            controller: _heightController,
+            label: 'Altura (cm)',
+            keyboardType: TextInputType.number,
+            validator: (value) {
+              if (value!.isEmpty) return 'Ingrese su altura';
+              if (double.tryParse(value) == null) return 'Ingrese un número válido';
+              return null;
+            },
+          ),
+          _buildSportActivityDropdown(),
+        ],
       ),
     );
   }
@@ -294,6 +335,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             borderRadius: BorderRadius.circular(8.0),
             borderSide: BorderSide(color: Colors.brown.shade700, width: 2.0),
           ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
         keyboardType: keyboardType,
         validator: validator,
@@ -303,21 +345,88 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildSportActivityDropdown() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: DropdownButtonFormField<String>(
+        decoration: InputDecoration(
+          labelText: 'Actividad Deportiva',
+          prefixIcon: Icon(Icons.sports, color: Colors.brown.shade600),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            borderSide: BorderSide(color: Colors.brown.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            borderSide: BorderSide(color: Colors.brown.shade700, width: 2.0),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+        value: _selectedSportActivity,
+        items: _sportActivityOptions
+            .map((label) => DropdownMenuItem(
+                value: label,
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: Color.fromARGB(255, 104, 79, 74),
+                    fontSize: 16,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                )))
+            .toList(),
+        onChanged: (value) {
+          setState(() {
+            _selectedSportActivity = value;
+          });
+        },
+        validator: (value) => value == null || value.isEmpty
+            ? 'Por favor selecciona tu actividad deportiva'
+            : null,
+        dropdownColor: Colors.white,
+        icon: Icon(
+          Icons.arrow_drop_down,
+          color: Colors.brown.shade600,
+        ),
+        isExpanded: true,
+      ),
+    );
+  }
+
   Widget _buildUserInfo(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-          ),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 18),
-          ),
-        ],
+      child: Container(
+        width: double.infinity,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color.fromARGB(255, 104, 79, 74),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value.isNotEmpty ? value : 'No especificado',
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.black87,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+            ),
+            const Divider(color: Colors.brown, thickness: 0.5),
+          ],
+        ),
       ),
     );
   }
